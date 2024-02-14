@@ -1,55 +1,101 @@
 import { useSelector } from "react-redux";
-import { Alert } from "antd";
-import GlobalHeader from "@/components/GlobalHeader";
-import GlobalFooter from "@/components/GlobalFooter";
+import { Alert, Layout, Space, Divider, Flex } from "antd";
 import { getAnnounces } from "@/api/notice";
 import { Outlet } from "react-router-dom";
-//import { SocketContextProvider } from "../contexts/SocketContext";
+import { openLegalDoc } from "@/utils/util";
+import { useTranslation } from "react-i18next";
 import { useEffect, useRef } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import BizMenu from "./header/BizMenu";
+import UserMenu from "./header/UserMenu";
+import Region from "@/locale/Region";
+import SearchBox from "@/modules/Search";
+import { globalUrl } from "@/config/env";
+import { Link } from "react-router-dom";
 
 export default function BasicLayout() {
-  const curUser = useSelector((state) => state.curUser);
-  const locale = useSelector((state) => state.locale);
+  const { Header, Content, Footer } = Layout;
+  const current_account = useSelector((state) => state.account);
+  const { locale } = current_account;
+  const { t } = useTranslation();
+  const curYear = new Date().getFullYear();
+
   let announces = useRef([]);
 
   useEffect(() => {
-    if (curUser) {
+    if (current_account) {
       let currentLocale = locale || localStorage.getItem("locale") || "en-US";
       getAnnounces({ locale: currentLocale }).then((res) => {
         announces.current = res.data;
       });
     }
-  }, [curUser, locale]);
+  }, [current_account, locale]);
 
   return (
-    <section
-      className="flex flex-auto flex-col min-h-screen bg-zinc-100"
-      style={{ width: "1200px" }}
-    >
-      {/* <SocketContextProvider> */}
-      <GlobalHeader />
+    <Layout style={{ width: "1200px" }}>
+      <Header>
+        <div>
+          <Link to="/index">
+            <img
+              style={{ width: "64px", height: "64px", display: "inline-block" }}
+              src={`${globalUrl}logos/logo.svg`}
+              alt="logo"
+            />
+          </Link>
+        </div>
+        <SearchBox
+          placeholder={t("placeholder.searchbox", { ns: "global" })}
+        ></SearchBox>
+        <Flex>
+          <BizMenu />
+          <UserMenu />
+          <Region />
+        </Flex>
+      </Header>
 
-      <main className="flex-auto min-h-0 mt-6">
+      <Content>
         {announces.current.forEach((item) => {
           <Alert
             closable
             banner
             type={item.type}
             message={item.content}
-            className="mb-6"
+            style={{ marginBottom: "48px" }}
           ></Alert>;
         })}
 
         <ErrorBoundary>
           <Outlet />
         </ErrorBoundary>
-      </main>
+      </Content>
 
-      <footer className="flex-auto text-stone-500 text-sm bg-zinc-100 px-10 py-5">
-        <GlobalFooter />
-      </footer>
-      {/* </SocketContextProvider> */}
-    </section>
+      <Footer>
+        <Divider />
+
+        <Space direction="vertical">
+          <Space size="large">
+            <a onClick={() => openLegalDoc("help", locale)}>
+              {t("docmenu.help", { ns: "component" })}
+            </a>
+            <a onClick={() => openLegalDoc("privacy", locale)}>
+              {t("docmenu.privacy", { ns: "component" })}
+            </a>
+            <a onClick={() => openLegalDoc("term", locale)}>
+              {t("docmenu.term", { ns: "component" })}
+            </a>
+            <a onClick={() => openLegalDoc("about", locale)}>
+              {t("docmenu.about", { ns: "component" })}
+            </a>
+          </Space>
+
+          <Space>
+            <span className="material-icons-outlined">copyright</span>
+            {curYear}
+            <span>{t("unit.brand", { ns: "global" })}</span>
+            <span>{t("footer.title", { ns: "component" })}</span>
+          </Space>
+        </Space>
+      </Footer>
+    </Layout>
   );
 }
